@@ -1,0 +1,7 @@
+artifact_location: file:///d:/Dental OPG Image Analysis/Dental-OPG-XRAY-Analysis-MLOPS/runs/mlflow/205348170015868623
+creation_time: 1772652789562
+experiment_id: '205348170015868623'
+last_update_time: 1772652789562
+lifecycle_stage: active
+name: Dental-OPG-Cavity-Detection
+workspace: default

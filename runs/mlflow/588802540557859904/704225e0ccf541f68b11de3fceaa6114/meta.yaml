@@ -1,0 +1,14 @@
+artifact_uri: file:///d:/Dental OPG Image Analysis/Dental-OPG-XRAY-Analysis-MLOPS/runs/mlflow/588802540557859904/704225e0ccf541f68b11de3fceaa6114/artifacts
+end_time: 1772652337962
+entry_point_name: ''
+experiment_id: '588802540557859904'
+lifecycle_stage: active
+run_id: 704225e0ccf541f68b11de3fceaa6114
+run_name: cavity_detection
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772652315176
+status: 3
+tags: []
+user_id: sento

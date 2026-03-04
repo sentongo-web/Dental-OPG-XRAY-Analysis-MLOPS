@@ -1,0 +1,7 @@
+artifact_location: file:///d:/Dental OPG Image Analysis/Dental-OPG-XRAY-Analysis-MLOPS/runs/mlflow/588802540557859904
+creation_time: 1772652189268
+experiment_id: '588802540557859904'
+last_update_time: 1772652189268
+lifecycle_stage: active
+name: artifacts\model_trainer\results
+workspace: default

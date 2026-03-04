@@ -35,22 +35,36 @@ logger = logging.getLogger(__name__)
 MODEL_PATH = Path("models/best/best.pt")
 FALLBACK_MODEL = "yolov8n.pt"  # Use nano YOLOv8 as fallback for demo
 
+LOAD_ERROR = None  # Store load error for display in UI
+
 
 def load_pipeline():
     """Load prediction pipeline with fallback."""
+    global LOAD_ERROR
+    try:
+        from ultralytics import YOLO  # noqa: F401 — verify ultralytics is available
+    except ImportError:
+        LOAD_ERROR = "ultralytics not installed. Run: pip install ultralytics"
+        logger.error(LOAD_ERROR)
+        return None
+
     try:
         from dental_opg.pipeline.prediction_pipeline import PredictionPipeline
         if MODEL_PATH.exists():
+            logger.info(f"Loading trained model: {MODEL_PATH}")
             return PredictionPipeline(model_path=MODEL_PATH)
         else:
-            logger.warning(f"Trained model not found at {MODEL_PATH}, using pretrained YOLOv8n")
+            logger.warning(f"Trained model not found at {MODEL_PATH}")
+            logger.info("Downloading pretrained YOLOv8n as demo fallback...")
             return PredictionPipeline(model_path=FALLBACK_MODEL)
     except Exception as e:
+        LOAD_ERROR = str(e)
         logger.error(f"Failed to load pipeline: {e}")
         return None
 
 
 pipeline = load_pipeline()
+logger.info(f"Pipeline loaded: {pipeline is not None}")
 
 # ------------------------------------------------------------------ #
 #  PREDICTION FUNCTION                                                 #
@@ -73,7 +87,9 @@ def predict_cavities(
         return None, "Please upload an OPG X-ray image.", "{}"
 
     if pipeline is None:
-        return image, "Model not loaded. Please check deployment.", "{}"
+        error_detail = LOAD_ERROR or "Unknown error during model loading."
+        msg = f"**Model failed to load.**\n\nReason: `{error_detail}`\n\nFix: run `pip install ultralytics` in your Anaconda environment, then restart the app."
+        return image, msg, f'{{"error": "{error_detail}"}}'
 
     try:
         # Update thresholds
@@ -291,7 +307,7 @@ def create_interface():
             - DVC for data/model versioning
 
             **Author:** Paul Sentongo
-            **GitHub:** [Dental-OPG-XRAY-Analysis-MLOPS](https://github.com/paulsentongo/Dental-OPG-XRAY-Analysis-MLOPS)
+            **GitHub:** [Dental-OPG-XRAY-Analysis-MLOPS](https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS)
             """)
 
         # Event handlers

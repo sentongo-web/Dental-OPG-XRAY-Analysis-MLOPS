@@ -1,0 +1,14 @@
+artifact_uri: file:///d:/Dental OPG Image Analysis/Dental-OPG-XRAY-Analysis-MLOPS/runs/mlflow/205348170015868623/05ddcbcbcad64d149c7791d610317eb7/artifacts
+end_time: 1772652789784
+entry_point_name: ''
+experiment_id: '205348170015868623'
+lifecycle_stage: active
+run_id: 05ddcbcbcad64d149c7791d610317eb7
+run_name: yolov8_yolov8n
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772652789595
+status: 3
+tags: []
+user_id: sento

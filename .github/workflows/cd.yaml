@@ -41,7 +41,7 @@ jobs:
       - name: Deploy to HuggingFace Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE_REPO: paulsentongo/dental-opg-cavity-detection
+          HF_SPACE_REPO: Sentoz/dental-opg-cavity-detection
         run: |
           python - <<'EOF'
           import os
@@ -131,7 +131,7 @@ jobs:
       - name: Upload model artifacts
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_MODEL_REPO: paulsentongo/dental-opg-cavity-detection-model
+          HF_MODEL_REPO: Sentoz/dental-opg-cavity-detection-model
         run: |
           python - <<'EOF'
           import os

@@ -39,11 +39,18 @@ class PredictionPipeline:
         self._load_model()
 
     def _load_model(self):
-        """Load YOLOv8 model."""
-        if not self.model_path.exists():
+        """Load YOLOv8 model. Accepts local .pt path or pretrained name (e.g. 'yolov8n.pt')."""
+        from ultralytics import YOLO
+
+        # Only check existence for local paths (not pretrained names like 'yolov8n.pt')
+        is_pretrained_name = not str(self.model_path).startswith(("/", ".", "\\")) and \
+                             not Path(self.model_path).is_absolute() and \
+                             str(self.model_path) == self.model_path.name
+
+        if not is_pretrained_name and not self.model_path.exists():
             raise FileNotFoundError(f"Model not found: {self.model_path}")
 
-        from ultralytics import YOLO
+        logger.info(f"Loading model: {self.model_path} (pretrained={is_pretrained_name})")
         self.model = YOLO(str(self.model_path))
         logger.info(f"Model loaded: {self.model_path}")
 

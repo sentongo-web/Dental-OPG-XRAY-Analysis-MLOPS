@@ -89,13 +89,31 @@ class ModelTrainer:
         train_args = self._get_training_args()
         logger.info(f"Training args: {train_args}")
 
-        # Set up MLflow
-        mlflow.set_experiment("Dental-OPG-Cavity-Detection")
+        # Train first — MLflow tracking is best-effort and must never block training
+        logger.info("Starting YOLOv8 training...")
+        results = model.train(**train_args)
+        metrics = results.results_dict if hasattr(results, "results_dict") else {}
 
-        with mlflow.start_run(run_name=f"yolov8_{self.config.model_name.replace('.pt', '')}") as run:
-            logger.info(f"MLflow Run ID: {run.info.run_id}")
+        # Save best model to models/best/ — this is the critical step
+        best_model_path = self.config.results_dir / "cavity_detection" / "weights" / "best.pt"
+        if best_model_path.exists():
+            best_dir = Path("models/best")
+            best_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(best_model_path, best_dir / "best.pt")
+            logger.info(f"Best model saved to: {best_dir / 'best.pt'}")
+        else:
+            logger.warning(f"best.pt not found at: {best_model_path}")
 
-            # Log parameters
+        # MLflow logging — wrapped so any tracking failure never crashes training
+        try:
+            mlflow.set_experiment("Dental-OPG-Cavity-Detection")
+            run = mlflow.start_run(run_name=f"yolov8_{self.config.model_name.replace('.pt', '')}")
+            run_id = run.info.run_id
+            logger.info(f"MLflow Run ID: {run_id}")
+
+            with open(self.config.data_yaml) as f:
+                data_cfg = yaml.safe_load(f)
+
             mlflow.log_params({
                 "model": self.config.model_name,
                 "epochs": train_args["epochs"],
@@ -103,23 +121,10 @@ class ModelTrainer:
                 "imgsz": train_args["imgsz"],
                 "optimizer": train_args["optimizer"],
                 "lr0": train_args["lr0"],
-                "augmentation": "CLAHE+brightness+rotation",
-            })
-
-            # Load data config for logging
-            with open(self.config.data_yaml) as f:
-                data_cfg = yaml.safe_load(f)
-            mlflow.log_params({
                 "num_classes": data_cfg.get("nc", 1),
                 "class_names": str(data_cfg.get("names", ["cavity"])),
+                "augmentation": "CLAHE+brightness+rotation",
             })
-
-            # Train
-            logger.info("Starting YOLOv8 training...")
-            results = model.train(**train_args)
-
-            # Log metrics
-            metrics = results.results_dict if hasattr(results, "results_dict") else {}
             mlflow.log_metrics({
                 "mAP50": float(metrics.get("metrics/mAP50(B)", 0)),
                 "mAP50_95": float(metrics.get("metrics/mAP50-95(B)", 0)),
@@ -129,40 +134,31 @@ class ModelTrainer:
                 "cls_loss": float(metrics.get("train/cls_loss", 0)),
                 "dfl_loss": float(metrics.get("train/dfl_loss", 0)),
             })
-
-            # Save best model path
-            best_model_path = (
-                self.config.results_dir / "cavity_detection" / "weights" / "best.pt"
-            )
-
             if best_model_path.exists():
-                # Log model artifact to MLflow
                 mlflow.log_artifact(str(best_model_path), "model")
-
-                # Copy best model to models/best/
-                best_dir = Path("models/best")
-                best_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(best_model_path, best_dir / "best.pt")
-                logger.info(f"Best model saved to: {best_dir / 'best.pt'}")
-
-                # Save model info
-                model_info = {
-                    "model_name": self.config.model_name,
-                    "best_model_path": str(best_model_path),
-                    "mlflow_run_id": run.info.run_id,
-                    "metrics": {k: float(v) for k, v in metrics.items()},
-                }
-                save_json(Path(self.config.root_dir) / "model_info.json", model_info)
-
-            # Log training plots
             results_plot_dir = self.config.results_dir / "cavity_detection"
             if results_plot_dir.exists():
                 for plot_file in results_plot_dir.glob("*.png"):
                     mlflow.log_artifact(str(plot_file), "plots")
+            mlflow.end_run()
+            logger.info(f"MLflow tracking complete. Run ID: {run_id}")
+        except Exception as mlflow_err:
+            logger.warning(f"MLflow logging failed (training still succeeded): {mlflow_err}")
+            try:
+                mlflow.end_run()
+            except Exception:
+                pass
 
-            logger.info(f"Training complete. Run ID: {run.info.run_id}")
-            logger.info(f"mAP@0.5: {metrics.get('metrics/mAP50(B)', 'N/A')}")
-            logger.info(f"mAP@0.5:0.95: {metrics.get('metrics/mAP50-95(B)', 'N/A')}")
+        # Save model info JSON
+        model_info = {
+            "model_name": self.config.model_name,
+            "best_model_path": str(best_model_path),
+            "metrics": {k: float(v) for k, v in metrics.items()},
+        }
+        save_json(Path(self.config.root_dir) / "model_info.json", model_info)
+
+        logger.info(f"mAP@0.5: {metrics.get('metrics/mAP50(B)', 'N/A')}")
+        logger.info(f"mAP@0.5:0.95: {metrics.get('metrics/mAP50-95(B)', 'N/A')}")
 
         return results
 

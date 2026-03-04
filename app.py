@@ -25,7 +25,7 @@ def download_model_if_needed():
         os.makedirs("models/best", exist_ok=True)
         # Update with your HuggingFace repo ID after uploading
         hf_hub_download(
-            repo_id="paulsentongo/dental-opg-cavity-detection",
+            repo_id="Sentoz/dental-opg-cavity-detection",
             filename="best.pt",
             local_dir="models/best",
         )

@@ -82,7 +82,7 @@ Trained on dental OPG X-ray images with annotated cavities.
 """
 
 
-def deploy_space(token: str, space_name: str, author: str = "paulsentongo"):
+def deploy_space(token: str, space_name: str, author: str = "Sentoz"):
     """Deploy Gradio app to HuggingFace Spaces."""
     from huggingface_hub import HfApi
 
@@ -176,7 +176,7 @@ def deploy_space(token: str, space_name: str, author: str = "paulsentongo"):
     return space_url
 
 
-def upload_model_to_hub(token: str, model_name: str, author: str = "paulsentongo"):
+def upload_model_to_hub(token: str, model_name: str, author: str = "Sentoz"):
     """Upload trained model to HuggingFace Model Hub."""
     from huggingface_hub import HfApi
 
@@ -228,7 +228,7 @@ Fine-tuned YOLOv8 for detecting dental cavities in OPG X-ray images.
 ```python
 from ultralytics import YOLO
 
-model = YOLO("paulsentongo/dental-opg-cavity-detection-model")
+model = YOLO("Sentoz/dental-opg-cavity-detection-model")
 results = model("opg_xray.jpg", conf=0.25)
 results[0].show()
 ```
@@ -265,7 +265,7 @@ results[0].show()
 def main():
     parser = argparse.ArgumentParser(description="Deploy to HuggingFace")
     parser.add_argument("--token", required=True, help="HuggingFace API token")
-    parser.add_argument("--author", default="paulsentongo", help="HuggingFace username")
+    parser.add_argument("--author", default="Sentoz", help="HuggingFace username")
     parser.add_argument("--space-name", default="dental-opg-cavity-detection",
                        help="Space repository name")
     parser.add_argument("--model-name", default="dental-opg-cavity-detection-model",

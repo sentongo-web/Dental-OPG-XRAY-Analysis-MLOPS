@@ -1,7 +1,7 @@
 # 🦷 Dental OPG Cavity Detection — MLOps Pipeline
 
-[![CI](https://github.com/paulsentongo/Dental-OPG-XRAY-Analysis-MLOPS/actions/workflows/ci.yaml/badge.svg)](https://github.com/paulsentongo/Dental-OPG-XRAY-Analysis-MLOPS/actions/workflows/ci.yaml)
-[![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-blue)](https://huggingface.co/spaces/paulsentongo/dental-opg-cavity-detection)
+[![CI](https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS/actions/workflows/ci.yaml/badge.svg)](https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS/actions/workflows/ci.yaml)
+[![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-blue)](https://huggingface.co/spaces/Sentoz/dental-opg-cavity-detection)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![YOLOv8](https://img.shields.io/badge/Model-YOLOv8-orange)](https://github.com/ultralytics/ultralytics)
 [![DVC](https://img.shields.io/badge/DVC-Enabled-purple)](https://dvc.org)
@@ -135,7 +135,7 @@ Dental-OPG-XRAY-Analysis-MLOPS/
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/paulsentongo/Dental-OPG-XRAY-Analysis-MLOPS.git
+git clone https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS.git
 cd Dental-OPG-XRAY-Analysis-MLOPS
 
 python -m venv venv
@@ -353,7 +353,7 @@ mlflow runs list --experiment-name "Dental-OPG-Cavity-Detection" --order-by "met
 # After training
 python scripts/deploy_to_huggingface.py \
     --token YOUR_HF_TOKEN \
-    --author paulsentongo \
+    --author Sentoz \
     --space-name dental-opg-cavity-detection
 ```
 
@@ -365,7 +365,7 @@ Required GitHub Secrets:
 
 ### Space URL
 ```
-https://huggingface.co/spaces/paulsentongo/dental-opg-cavity-detection
+https://huggingface.co/spaces/Sentoz/dental-opg-cavity-detection
 ```
 
 ---

@@ -14,7 +14,7 @@ setup(
     description="MLOps pipeline for dental cavity detection in OPG X-ray images using YOLOv8",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/paulsentongo/Dental-OPG-XRAY-Analysis-MLOPS",
+    url="https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     python_requires=">=3.10",
