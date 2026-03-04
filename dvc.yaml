@@ -1,0 +1,78 @@
+stages:
+  data_ingestion:
+    cmd: python -m dental_opg.pipeline.stage_01_data_ingestion
+    deps:
+      - src/dental_opg/components/data_ingestion.py
+      - config/config.yaml
+    outs:
+      - artifacts/data_ingestion/unzipped:
+          cache: true
+          persist: true
+    params:
+      - params.yaml:
+          - data
+
+  data_validation:
+    cmd: python -m dental_opg.pipeline.stage_02_data_validation
+    deps:
+      - src/dental_opg/components/data_validation.py
+      - artifacts/data_ingestion/unzipped
+      - config/config.yaml
+    outs:
+      - artifacts/data_validation/validation_report.json:
+          cache: false
+    metrics:
+      - artifacts/data_validation/status.txt:
+          cache: false
+
+  data_transformation:
+    cmd: python -m dental_opg.pipeline.stage_03_data_transformation
+    deps:
+      - src/dental_opg/components/data_transformation.py
+      - artifacts/data_ingestion/unzipped
+      - config/config.yaml
+    outs:
+      - artifacts/data_transformation/dataset:
+          cache: true
+          persist: true
+    params:
+      - params.yaml:
+          - data
+
+  model_training:
+    cmd: python -m dental_opg.pipeline.stage_04_model_training
+    deps:
+      - src/dental_opg/components/model_trainer.py
+      - artifacts/data_transformation/dataset/data.yaml
+      - config/config.yaml
+    outs:
+      - artifacts/model_trainer/results:
+          cache: true
+          persist: true
+      - models/best/best.pt:
+          cache: true
+          persist: true
+    params:
+      - params.yaml:
+          - training
+    metrics:
+      - artifacts/model_trainer/model_info.json:
+          cache: false
+
+  model_evaluation:
+    cmd: python -m dental_opg.pipeline.stage_05_model_evaluation
+    deps:
+      - src/dental_opg/components/model_evaluation.py
+      - models/best/best.pt
+      - artifacts/data_transformation/dataset/data.yaml
+      - config/config.yaml
+    outs:
+      - artifacts/model_evaluation/results:
+          cache: false
+    params:
+      - params.yaml:
+          - evaluation
+    metrics:
+      - artifacts/model_evaluation/results/metrics.json:
+          cache: false
+          persist: true

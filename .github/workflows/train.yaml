@@ -1,0 +1,105 @@
+name: Train Model (Manual / Scheduled)
+
+on:
+  workflow_dispatch:
+    inputs:
+      epochs:
+        description: "Number of training epochs"
+        required: false
+        default: "100"
+      model:
+        description: "YOLOv8 model size (n/s/m/l/x)"
+        required: false
+        default: "n"
+  schedule:
+    # Re-train weekly on Sundays at 2 AM UTC
+    - cron: "0 2 * * 0"
+
+jobs:
+  train:
+    name: Full Training Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours max
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libglib2.0-0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Set up DVC with GDrive
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+        run: |
+          dvc remote add -d gdrive gdrive://1mm0L2jRPKqCpyxXRsSJKVoj63-SXncv1 || true
+          dvc remote modify gdrive gdrive_use_service_account true || true
+
+      - name: Pull data with DVC
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+        run: dvc pull --no-run-cache || echo "DVC pull failed, running ingestion"
+
+      - name: Override params if inputs provided
+        run: |
+          if [ "${{ github.event.inputs.epochs }}" != "" ]; then
+            python -c "
+          import yaml
+          with open('params.yaml') as f:
+              p = yaml.safe_load(f)
+          p['training']['epochs'] = int('${{ github.event.inputs.epochs }}')
+          p['training']['model'] = 'yolov8${{ github.event.inputs.model }}.pt'
+          with open('params.yaml', 'w') as f:
+              yaml.dump(p, f)
+          print(f'Updated params: epochs=${{ github.event.inputs.epochs }}, model=yolov8${{ github.event.inputs.model }}.pt')
+            "
+          fi
+
+      - name: Run full pipeline
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+          MLFLOW_TRACKING_URI: mlruns
+        run: python main.py
+
+      - name: Push artifacts with DVC
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+        run: |
+          dvc add models/best/best.pt || true
+          dvc push || echo "DVC push failed"
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: best-model-${{ github.run_number }}
+          path: models/best/best.pt
+          retention-days: 30
+
+      - name: Upload evaluation results
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-${{ github.run_number }}
+          path: |
+            artifacts/model_evaluation/results/metrics.json
+            artifacts/model_evaluation/results/evaluation_report.png
+          retention-days: 30
+
+      - name: Trigger deployment
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: model-trained

@@ -1,0 +1,15 @@
+# DVC ignore file
+# Ignore Python cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+
+# Ignore logs
+logs/
+
+# Ignore MLflow runs
+mlruns/
+
+# Ignore temporary files
+*.tmp
+*.temp

@@ -1,0 +1,40 @@
+artifacts_root: artifacts
+
+data_ingestion:
+  root_dir: artifacts/data_ingestion
+  source_url: "https://drive.google.com/file/d/1mm0L2jRPKqCpyxXRsSJKVoj63-SXncv1/view?usp=sharing"
+  local_data_file: artifacts/data_ingestion/data.zip
+  unzip_dir: artifacts/data_ingestion/unzipped
+
+data_validation:
+  root_dir: artifacts/data_validation
+  STATUS_FILE: artifacts/data_validation/status.txt
+  required_files:
+    - images
+    - labels
+  required_annotation_formats:
+    - yolo
+    - coco
+    - voc
+
+data_transformation:
+  root_dir: artifacts/data_transformation
+  data_path: artifacts/data_ingestion/unzipped
+  output_dir: artifacts/data_transformation/dataset
+  train_ratio: 0.75
+  val_ratio: 0.15
+  test_ratio: 0.10
+  image_size: 640
+  augmentation_factor: 2
+
+model_trainer:
+  root_dir: artifacts/model_trainer
+  data_yaml: artifacts/data_transformation/dataset/data.yaml
+  model_name: yolov8n.pt
+  results_dir: artifacts/model_trainer/results
+
+model_evaluation:
+  root_dir: artifacts/model_evaluation
+  data_yaml: artifacts/data_transformation/dataset/data.yaml
+  model_path: artifacts/model_trainer/results/weights/best.pt
+  eval_results_dir: artifacts/model_evaluation/results

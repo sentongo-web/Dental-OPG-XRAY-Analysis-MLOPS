@@ -1,0 +1,1 @@
+from dental_opg.config.configuration import ConfigurationManager

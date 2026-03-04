@@ -1,0 +1,156 @@
+name: CI — Dental OPG Cavity Detection
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  CACHE_VERSION: v1
+
+jobs:
+  # ------------------------------------------------------------------ #
+  #  LINT & FORMAT CHECK                                                 #
+  # ------------------------------------------------------------------ #
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ env.CACHE_VERSION }}-pip-lint-${{ hashFiles('requirements.txt') }}
+
+      - name: Install lint tools
+        run: pip install black isort flake8
+
+      - name: Black format check
+        run: black --check src/ app/ main.py app.py
+
+      - name: isort check
+        run: isort --check-only src/ app/
+
+      - name: Flake8 lint
+        run: flake8 src/ app/ --max-line-length=120 --ignore=E203,W503,E501
+
+  # ------------------------------------------------------------------ #
+  #  UNIT TESTS                                                          #
+  # ------------------------------------------------------------------ #
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ env.CACHE_VERSION }}-pip-test-${{ hashFiles('requirements.txt') }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --tb=short --cov=src/dental_opg --cov-report=xml
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+  # ------------------------------------------------------------------ #
+  #  PIPELINE VALIDATION (smoke test)                                    #
+  # ------------------------------------------------------------------ #
+  pipeline-smoke-test:
+    name: Pipeline Smoke Test
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libglib2.0-0 libsm6 libxext6 libxrender-dev libgl1-mesa-glx
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Validate configurations
+        run: python -c "
+          from dental_opg.config.configuration import ConfigurationManager
+          cm = ConfigurationManager()
+          cm.get_data_ingestion_config()
+          cm.get_data_validation_config()
+          cm.get_data_transformation_config()
+          cm.get_model_trainer_config()
+          cm.get_model_evaluation_config()
+          print('All configurations valid.')
+        "
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+
+      - name: Validate imports
+        run: |
+          python -c "from dental_opg.pipeline.prediction_pipeline import PredictionPipeline; print('Imports OK')"
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+
+  # ------------------------------------------------------------------ #
+  #  BUILD DOCKER IMAGE                                                  #
+  # ------------------------------------------------------------------ #
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: pipeline-smoke-test
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: dental-opg-cavity-detection:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,177 @@
+name: CD — Deploy to HuggingFace Spaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "models/best/best.pt"
+      - "app/**"
+      - "app.py"
+      - "src/**"
+      - "requirements.txt"
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: "Force deployment even without model changes"
+        required: false
+        default: "false"
+
+jobs:
+  # ------------------------------------------------------------------ #
+  #  TRAIN & EVALUATE (triggered on data/params changes)                #
+  # ------------------------------------------------------------------ #
+  check-and-deploy:
+    name: Deploy to HuggingFace Spaces
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install HuggingFace Hub CLI
+        run: pip install huggingface-hub
+
+      - name: Deploy to HuggingFace Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: paulsentongo/dental-opg-cavity-detection
+        run: |
+          python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+
+          token = os.environ["HF_TOKEN"]
+          repo_id = os.environ["HF_SPACE_REPO"]
+
+          api = HfApi(token=token)
+
+          # Create space if not exists
+          try:
+              api.create_repo(
+                  repo_id=repo_id,
+                  repo_type="space",
+                  space_sdk="gradio",
+                  exist_ok=True,
+              )
+              print(f"Space ready: {repo_id}")
+          except Exception as e:
+              print(f"Space creation: {e}")
+
+          # Files to upload
+          files_to_upload = [
+              ("app.py", "app.py"),
+              ("app/gradio_app.py", "app/gradio_app.py"),
+              ("app/__init__.py", "app/__init__.py"),
+              ("requirements.txt", "requirements.txt"),
+              ("setup.py", "setup.py"),
+              ("config/config.yaml", "config/config.yaml"),
+              ("params.yaml", "params.yaml"),
+          ]
+
+          # Upload source files
+          import os
+          for local_path, remote_path in files_to_upload:
+              if os.path.exists(local_path):
+                  api.upload_file(
+                      path_or_fileobj=local_path,
+                      path_in_repo=remote_path,
+                      repo_id=repo_id,
+                      repo_type="space",
+                  )
+                  print(f"Uploaded: {local_path}")
+
+          # Upload src directory
+          api.upload_folder(
+              folder_path="src",
+              path_in_repo="src",
+              repo_id=repo_id,
+              repo_type="space",
+              ignore_patterns=["__pycache__", "*.pyc"],
+          )
+          print("Uploaded src/")
+
+          # Upload model if exists
+          if os.path.exists("models/best/best.pt"):
+              api.upload_file(
+                  path_or_fileobj="models/best/best.pt",
+                  path_in_repo="models/best/best.pt",
+                  repo_id=repo_id,
+                  repo_type="space",
+              )
+              print("Uploaded model: models/best/best.pt")
+
+          print(f"\nDeployment complete!")
+          print(f"Space URL: https://huggingface.co/spaces/{repo_id}")
+          EOF
+
+  # ------------------------------------------------------------------ #
+  #  UPLOAD MODEL TO HF HUB (Model Repository)                          #
+  # ------------------------------------------------------------------ #
+  upload-model:
+    name: Upload Model to HuggingFace Hub
+    runs-on: ubuntu-latest
+    needs: check-and-deploy
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install dependencies
+        run: pip install huggingface-hub
+
+      - name: Upload model artifacts
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_MODEL_REPO: paulsentongo/dental-opg-cavity-detection-model
+        run: |
+          python - <<'EOF'
+          import os
+          from pathlib import Path
+          from huggingface_hub import HfApi
+
+          token = os.environ.get("HF_TOKEN")
+          if not token:
+              print("HF_TOKEN not set, skipping model upload")
+              exit(0)
+
+          repo_id = os.environ["HF_MODEL_REPO"]
+          api = HfApi(token=token)
+
+          # Create model repo
+          api.create_repo(
+              repo_id=repo_id,
+              repo_type="model",
+              exist_ok=True,
+          )
+
+          # Upload best model
+          model_path = Path("models/best/best.pt")
+          if model_path.exists():
+              api.upload_file(
+                  path_or_fileobj=str(model_path),
+                  path_in_repo="best.pt",
+                  repo_id=repo_id,
+                  repo_type="model",
+              )
+              print(f"Model uploaded to: https://huggingface.co/{repo_id}")
+
+          # Upload evaluation results
+          eval_dir = Path("artifacts/model_evaluation/results")
+          if eval_dir.exists():
+              api.upload_folder(
+                  folder_path=str(eval_dir),
+                  path_in_repo="evaluation",
+                  repo_id=repo_id,
+                  repo_type="model",
+              )
+              print("Evaluation results uploaded")
+          EOF

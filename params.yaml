@@ -1,0 +1,76 @@
+# YOLOv8 Training Hyperparameters
+training:
+  model: yolov8n.pt          # nano model: best speed/accuracy trade-off for medical imaging
+  imgsz: 640                 # image size (OPG images need detail, 640 is optimal)
+  epochs: 100                # training epochs
+  batch: 16                  # batch size (reduce to 8 if GPU VRAM is limited)
+  patience: 20               # early stopping patience
+  lr0: 0.01                  # initial learning rate
+  lrf: 0.01                  # final learning rate fraction
+  momentum: 0.937            # SGD momentum
+  weight_decay: 0.0005       # optimizer weight decay
+  warmup_epochs: 3.0         # warmup epochs
+  warmup_momentum: 0.8       # warmup initial momentum
+  warmup_bias_lr: 0.1        # warmup initial bias lr
+  box: 7.5                   # box loss gain
+  cls: 0.5                   # cls loss gain
+  dfl: 1.5                   # dfl loss gain
+  degrees: 0.0               # rotation augmentation (0 for medical)
+  translate: 0.1             # translation augmentation
+  scale: 0.5                 # scaling augmentation
+  fliplr: 0.0                # horizontal flip (0 for OPG - anatomical orientation matters)
+  flipud: 0.0                # vertical flip (0 for medical)
+  mosaic: 0.0                # mosaic augmentation (0 for medical imaging)
+  mixup: 0.0                 # mixup augmentation
+  copy_paste: 0.0            # copy-paste augmentation
+  hsv_h: 0.0                 # HSV-Hue (0 for X-ray - grayscale)
+  hsv_s: 0.0                 # HSV-Saturation (0 for X-ray)
+  hsv_v: 0.4                 # HSV-Value augmentation (brightness for X-ray)
+  device: ""                 # device (auto-detect GPU)
+  workers: 4                 # dataloader workers
+  optimizer: AdamW           # optimizer
+  seed: 42                   # reproducibility seed
+  deterministic: true        # deterministic mode
+  single_cls: false          # single class detection
+  rect: false                # rectangular training
+  cos_lr: true               # cosine LR scheduler
+  close_mosaic: 10           # disable mosaic last N epochs
+  resume: false              # resume training
+  amp: true                  # auto mixed precision
+  fraction: 1.0              # dataset fraction
+  profile: false             # profile ONNX/TorchScript speed
+  freeze: null               # freeze first N layers
+  overlap_mask: true         # masks overlap during training
+  mask_ratio: 4              # mask downsample ratio
+  dropout: 0.0               # dropout (for classification)
+  val: true                  # validate during training
+  save: true                 # save results
+  save_period: 10            # save checkpoint every N epochs
+  cache: false               # cache images
+  plots: true                # save training plots
+  verbose: true              # verbose output
+  project: artifacts/model_trainer/results
+
+# Data parameters
+data:
+  image_size: 640
+  train_ratio: 0.75
+  val_ratio: 0.15
+  test_ratio: 0.10
+  augmentation_factor: 2
+
+# Model evaluation thresholds
+evaluation:
+  conf_threshold: 0.25       # confidence threshold for detection
+  iou_threshold: 0.45        # IoU threshold for NMS
+  min_map50: 0.50            # minimum mAP@0.5 to pass evaluation
+  min_map50_95: 0.30         # minimum mAP@0.5:0.95
+
+# Classes
+classes:
+  - cavity                   # primary class: dental cavity/caries
+  # Additional classes can be added as dataset expands:
+  # - periapical_lesion
+  # - bone_loss
+  # - impacted_tooth
+  # - root_canal_treated

@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Virtual environments
+.env
+.venv
+venv/
+ENV/
+env.bak/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Data & Models (tracked by DVC)
+artifacts/
+data/raw/
+data/processed/
+
+# Large model files
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.pb
+
+# MLflow
+mlruns/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets
+.env.local
+.env.production
+secrets.yaml
+credentials.json
+
+# DVC (keep .dvc files, ignore cache)
+.dvc/cache/
+.dvc/tmp/
+
+# Reports (generated)
+reports/figures/*.png
+reports/figures/*.pdf
+
+# Temp
+*.tmp
+*.temp
+.cache/
