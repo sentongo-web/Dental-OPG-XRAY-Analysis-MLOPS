@@ -1,10 +1,10 @@
 # YOLOv8 Training Hyperparameters
 training:
-  model: yolov8s.pt          # small model: better accuracy for medical imaging (upgraded from nano)
+  model: yolov8n.pt          # nano model: fastest training, good for CPU/limited GPU
   imgsz: 640                 # image size (OPG images need detail, 640 is optimal)
-  epochs: 100                # training epochs
-  batch: 16                  # batch size (reduce to 8 if GPU VRAM is limited)
-  patience: 20               # early stopping patience
+  epochs: 30                 # training epochs (reduced for faster training; increase if GPU available)
+  batch: 8                   # batch size (reduced for CPU/limited RAM)
+  patience: 10               # early stopping patience
   lr0: 0.001                 # initial learning rate (lower for fine-tuning on small dataset)
   lrf: 0.01                  # final learning rate fraction
   momentum: 0.937            # SGD momentum
@@ -26,8 +26,8 @@ training:
   hsv_h: 0.0                 # HSV-Hue (0 for X-ray - grayscale)
   hsv_s: 0.0                 # HSV-Saturation (0 for X-ray)
   hsv_v: 0.4                 # HSV-Value augmentation (brightness for X-ray)
-  device: ""                 # device (auto-detect GPU)
-  workers: 4                 # dataloader workers
+  device: ""                 # device (auto-detect GPU, falls back to CPU)
+  workers: 0                 # dataloader workers (0 is fastest on Windows)
   optimizer: AdamW           # optimizer
   seed: 42                   # reproducibility seed
   deterministic: true        # deterministic mode
