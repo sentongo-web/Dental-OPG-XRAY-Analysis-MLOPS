@@ -798,7 +798,7 @@ def create_interface():
                     input_image = gr.Image(
                         type="numpy",
                         label="OPG X-ray Image",
-                        sources=["upload", "clipboard"],
+                        sources=["upload"],
                         height=370,
                     )
                     with gr.Accordion("Detection Settings", open=False):
