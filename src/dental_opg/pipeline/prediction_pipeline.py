@@ -18,10 +18,17 @@ class PredictionPipeline:
     Handles single images and batches.
     """
 
-    # Color map for visualization (BGR)
-    CAVITY_COLOR = (0, 0, 255)       # Red for cavities
-    TEXT_COLOR = (255, 255, 255)      # White text
-    OVERLAY_ALPHA = 0.3
+    # Color map for visualization per class (BGR), 6 classes
+    CLASS_COLORS = [
+        (0, 0, 255),     # class 0 BDC-BDR: Red
+        (0, 165, 255),   # class 1 Caries: Orange
+        (0, 255, 255),   # class 2 Fractured Teeth: Yellow
+        (0, 200, 0),     # class 3 Healthy Teeth: Green
+        (255, 0, 255),   # class 4 Impacted Teeth: Magenta
+        (255, 50, 50),   # class 5 Infection: Blue-red
+    ]
+    TEXT_COLOR = (255, 255, 255)
+    OVERLAY_ALPHA = 0.25
 
     def __init__(
         self,
@@ -128,11 +135,18 @@ class PredictionPipeline:
 
         avg_conf = np.mean([d["confidence"] for d in detections]) if detections else 0.0
 
+        # Count per class
+        class_counts = {}
+        for d in detections:
+            name = d["class_name"]
+            class_counts[name] = class_counts.get(name, 0) + 1
+
         result = {
             "cavity_count": len(detections),
+            "class_counts": class_counts,
             "detections": detections,
             "confidence_avg": round(float(avg_conf), 4),
-            "severity": self._assess_severity(len(detections), avg_conf),
+            "severity": self._assess_severity(detections),
         }
 
         if return_visualization:
@@ -140,18 +154,27 @@ class PredictionPipeline:
 
         return result
 
-    def _assess_severity(self, count: int, avg_conf: float) -> str:
-        """Assess overall dental cavity severity."""
-        if count == 0:
-            return "No cavities detected"
-        elif count <= 2 and avg_conf < 0.7:
-            return "Mild - 1-2 potential cavities (low confidence)"
-        elif count <= 2:
-            return "Mild - 1-2 cavities detected"
-        elif count <= 5:
-            return "Moderate - Multiple cavities detected"
+    def _assess_severity(self, detections: List[Dict]) -> str:
+        """Assess overall severity based on detected conditions."""
+        if not detections:
+            return "No pathological findings detected"
+
+        URGENT = {"Infection", "BDC-BDR"}
+        MODERATE = {"Caries", "Fractured Teeth"}
+
+        classes_found = {d["class_name"] for d in detections}
+        count = len(detections)
+
+        if classes_found & URGENT:
+            return "Urgent — infection or severe decay detected. Immediate dental referral recommended."
+        elif classes_found & MODERATE and count > 3:
+            return "Moderate — multiple cavities or fractures found. Dental treatment needed soon."
+        elif classes_found & MODERATE:
+            return "Mild — early cavities or minor fractures. Schedule dental appointment."
+        elif "Impacted Teeth" in classes_found:
+            return "Impacted teeth detected. Orthodontic or surgical evaluation may be needed."
         else:
-            return "Severe - Many cavities detected - Immediate dental attention required"
+            return "Minor findings detected. Follow-up with a dentist recommended."
 
     def _visualize(self, img_bgr: np.ndarray, detections: List[Dict]) -> np.ndarray:
         """Draw bounding boxes and labels on image."""
@@ -161,26 +184,28 @@ class PredictionPipeline:
         for i, det in enumerate(detections):
             x1, y1, x2, y2 = det["bbox"]
             conf = det["confidence"]
+            cls_id = det["class_id"]
             cls_name = det["class_name"]
+            color = self.CLASS_COLORS[cls_id % len(self.CLASS_COLORS)]
 
             # Draw rectangle
-            cv2.rectangle(img_vis, (x1, y1), (x2, y2), self.CAVITY_COLOR, 2)
+            cv2.rectangle(img_vis, (x1, y1), (x2, y2), color, 2)
 
             # Semi-transparent fill
             overlay = img_vis.copy()
-            cv2.rectangle(overlay, (x1, y1), (x2, y2), self.CAVITY_COLOR, -1)
+            cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
             cv2.addWeighted(overlay, self.OVERLAY_ALPHA, img_vis, 1 - self.OVERLAY_ALPHA, 0, img_vis)
 
             # Label
-            label = f"{cls_name} #{i+1} {conf:.2f}"
+            label = f"{cls_name} {conf:.2f}"
             (lw, lh), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
             label_y = max(y1 - 5, lh + 5)
-            cv2.rectangle(img_vis, (x1, label_y - lh - 4), (x1 + lw + 4, label_y + 2), self.CAVITY_COLOR, -1)
+            cv2.rectangle(img_vis, (x1, label_y - lh - 4), (x1 + lw + 4, label_y + 2), color, -1)
             cv2.putText(img_vis, label, (x1 + 2, label_y - 2),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.TEXT_COLOR, 1, cv2.LINE_AA)
 
         # Summary header
-        summary = f"Cavities: {len(detections)}"
+        summary = f"Findings: {len(detections)}"
         if detections:
             summary += f" | Avg Conf: {np.mean([d['confidence'] for d in detections]):.2f}"
         cv2.rectangle(img_vis, (0, 0), (w, 30), (0, 0, 0), -1)

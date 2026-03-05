@@ -1,11 +1,11 @@
 # YOLOv8 Training Hyperparameters
 training:
-  model: yolov8n.pt          # nano model: best speed/accuracy trade-off for medical imaging
+  model: yolov8s.pt          # small model: better accuracy for medical imaging (upgraded from nano)
   imgsz: 640                 # image size (OPG images need detail, 640 is optimal)
   epochs: 100                # training epochs
   batch: 16                  # batch size (reduce to 8 if GPU VRAM is limited)
   patience: 20               # early stopping patience
-  lr0: 0.01                  # initial learning rate
+  lr0: 0.001                 # initial learning rate (lower for fine-tuning on small dataset)
   lrf: 0.01                  # final learning rate fraction
   momentum: 0.937            # SGD momentum
   weight_decay: 0.0005       # optimizer weight decay
@@ -66,11 +66,11 @@ evaluation:
   min_map50: 0.50            # minimum mAP@0.5 to pass evaluation
   min_map50_95: 0.30         # minimum mAP@0.5:0.95
 
-# Classes
+# Classes (6 classes detected in dataset, mapped from class indices 0-5)
 classes:
-  - cavity                   # primary class: dental cavity/caries
-  # Additional classes can be added as dataset expands:
-  # - periapical_lesion
-  # - bone_loss
-  # - impacted_tooth
-  # - root_canal_treated
+  - BDC-BDR        # class 0: Badly Decayed Crown/Root
+  - Caries         # class 1: Dental cavities
+  - Fractured Teeth # class 2: Tooth fractures
+  - Healthy Teeth  # class 3: Normal healthy teeth
+  - Impacted Teeth # class 4: Impacted / wisdom teeth
+  - Infection      # class 5: Periapical/dental infection
