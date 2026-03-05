@@ -1,464 +1,191 @@
-# 🦷 Dental OPG Cavity Detection — MLOps Pipeline
+# Dental OPG X-ray Analysis System
 
-[![CI](https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS/actions/workflows/ci.yaml/badge.svg)](https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS/actions/workflows/ci.yaml)
-[![HuggingFace Space](https://img.shields.io/badge/🤗%20HuggingFace-Space-blue)](https://huggingface.co/spaces/Sentoz/dental-opg-cavity-detection)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
-[![YOLOv8](https://img.shields.io/badge/Model-YOLOv8-orange)](https://github.com/ultralytics/ultralytics)
-[![DVC](https://img.shields.io/badge/DVC-Enabled-purple)](https://dvc.org)
-[![MLflow](https://img.shields.io/badge/MLflow-Tracking-blue)](https://mlflow.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+**AI-powered detection of dental conditions in panoramic OPG X-ray images.**
+Built for dentists, dental officers, and health workers — with Uganda's healthcare context in mind.
 
-**Production-grade MLOps pipeline for automated dental cavity detection in Orthopantomogram (OPG) X-ray images using YOLOv8.**
-
----
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Quick Start](#quick-start)
-- [Pipeline Stages](#pipeline-stages)
-- [Model Performance](#model-performance)
-- [Configuration](#configuration)
-- [MLOps Features](#mlops-features)
-- [HuggingFace Deployment](#huggingface-deployment)
-- [API Reference](#api-reference)
-- [Contributing](#contributing)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square)](https://python.org)
+[![YOLOv8](https://img.shields.io/badge/Model-YOLOv8s-orange?style=flat-square)](https://github.com/ultralytics/ultralytics)
+[![Gradio](https://img.shields.io/badge/UI-Gradio-pink?style=flat-square)](https://gradio.app)
+[![MLflow](https://img.shields.io/badge/Tracking-MLflow-blue?style=flat-square)](https://mlflow.org)
+[![DVC](https://img.shields.io/badge/Data-DVC-green?style=flat-square)](https://dvc.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 
 ---
 
-## 🔬 Overview
+## What This System Does
 
-This project implements a complete **end-to-end MLOps pipeline** for detecting dental cavities (caries) in OPG X-ray images. It covers:
+Upload a panoramic OPG dental X-ray and the system will:
 
-- **Automated data ingestion** from Google Drive
-- **Multi-format support**: YOLO, COCO, Pascal VOC annotation formats
-- **Medical-safe augmentation** (no flips, no color jitter — X-ray appropriate)
-- **YOLOv8 fine-tuning** with full hyperparameter control
-- **MLflow experiment tracking** for all runs
-- **DVC data versioning** for reproducible pipelines
-- **Gradio web app** deployed to HuggingFace Spaces
-- **GitHub Actions CI/CD** for automated testing and deployment
+- **Validate** that the image is actually a dental X-ray before processing it
+- **Detect and classify** dental conditions into 6 categories with colour-coded bounding boxes
+- **Generate a clinical report** in plain language with per-condition descriptions and recommended actions
+- **Download a PDF** containing the annotated scan, all findings, and clinical recommendations — ready to print or share
 
 ---
 
-## 🏗️ Architecture
+## Detected Conditions
 
-```
-Raw OPG X-rays
-      │
-      ▼
-┌─────────────────────────────────────────────────────────┐
-│                    MLOps Pipeline                        │
-│                                                          │
-│  Stage 1      Stage 2         Stage 3                   │
-│  Data    →   Validate    →   Transform                  │
-│  Ingest      (format,        (YOLO splits,              │
-│  (GDrive)    integrity)      augmentation)              │
-│                                    │                    │
-│  Stage 4                   Stage 5 │                   │
-│  Train YOLOv8  ←───────────────────┘                   │
-│  (MLflow tracking)                                      │
-│       │                                                  │
-│       ▼                                                  │
-│  Stage 5: Evaluate (mAP, Precision, Recall, F1)         │
-│       │                                                  │
-│       ▼                                                  │
-│  Best Model  →  HuggingFace Hub  →  Gradio Space        │
-└─────────────────────────────────────────────────────────┘
-         │              │
-    DVC Cache     MLflow Runs
-```
-
-**Model:** YOLOv8 (nano → large variants) | **Framework:** Ultralytics | **Tracking:** MLflow | **Versioning:** DVC
+| Class | Condition | Severity |
+| ----- | --------- | -------- |
+| 0 | **BDC-BDR** — Badly Decayed Crown / Root | Urgent |
+| 1 | **Caries** — Dental Cavities | Moderate |
+| 2 | **Fractured Teeth** | Moderate |
+| 3 | **Healthy Teeth** | Normal |
+| 4 | **Impacted Teeth** | Monitor |
+| 5 | **Infection** — Periapical Abscess | Urgent |
 
 ---
 
-## 📁 Project Structure
+## Why Uganda
 
-```
+Uganda has fewer than **200 registered dentists** serving over 47 million people — a ratio of roughly 1 to 235,000. In rural areas, patients may travel hours to reach a clinic, and detailed X-ray analysis often requires a trip to Kampala. By the time treatment begins, a small cavity can become an extraction or a spreading infection.
+
+This system is designed to help:
+
+- **Dental officers and nurses** at district hospitals read X-rays without a specialist present
+- **Dental schools** (Makerere University, KIU) to build diagnostic intuition alongside clinical training
+- **Mobile outreach teams** conducting community screenings in schools and markets
+- **Private clinics** reviewing X-rays faster and seeing more patients each day
+- **Researchers** mapping dental disease prevalence across regions and age groups
+
+---
+
+## The Model
+
+The system uses **YOLOv8s** (You Only Look Once, version 8, small variant). When an X-ray is uploaded, the model scans the entire image in a single pass and draws precise boxes around every detected condition. Results appear in seconds, even on a standard laptop.
+
+### Why YOLOv8s
+
+- Fast enough for real-time clinical use
+- Handles the low-contrast, grayscale nature of X-rays well
+- Produces localised bounding boxes, not just image-level labels
+- Runs on modest hardware without an expensive GPU server
+- Open source and fully reproducible
+
+### Training Configuration
+
+- Image size: 640×640 px
+- Optimizer: AdamW, lr=0.001
+- Epochs: 100 with early stopping (patience 20)
+- Augmentations: CLAHE, brightness ±20%, slight rotation ±5°
+- No horizontal/vertical flips (OPG anatomical orientation matters)
+- No colour augmentation (X-rays are grayscale)
+
+---
+
+## Project Structure
+
+```text
 Dental-OPG-XRAY-Analysis-MLOPS/
-├── .github/
-│   └── workflows/
-│       ├── ci.yaml              # Lint, test, Docker build
-│       ├── cd.yaml              # Deploy to HuggingFace
-│       └── train.yaml           # Manual/scheduled training
 ├── app/
-│   └── gradio_app.py            # Gradio web interface
-├── config/
-│   └── config.yaml              # Path & artifact configuration
-├── notebooks/
-│   └── EDA.ipynb                # Exploratory data analysis
-├── reports/
-│   └── figures/                 # Generated plots
-├── scripts/
-│   ├── deploy_to_huggingface.py # HF deployment script
-│   └── download_data.py         # Standalone data downloader
-├── src/
-│   └── dental_opg/
-│       ├── components/
-│       │   ├── data_ingestion.py      # GDrive download + extract
-│       │   ├── data_validation.py     # Format detection + validation
-│       │   ├── data_transformation.py # YOLO/COCO/VOC → splits
-│       │   ├── model_trainer.py       # YOLOv8 + MLflow
-│       │   └── model_evaluation.py    # mAP, P, R, F1 + reports
-│       ├── config/configuration.py    # ConfigurationManager
-│       ├── constants/__init__.py      # Path constants
-│       ├── entity/config_entity.py    # Dataclass configs
-│       ├── pipeline/
-│       │   ├── stage_01-05_*.py       # Pipeline stage runners
-│       │   └── prediction_pipeline.py # Inference
-│       └── utils/common.py            # Shared utilities
-├── tests/
-│   ├── unit/                    # Unit tests (pytest)
-│   └── integration/             # Integration tests
-├── app.py                       # HuggingFace entry point
-├── dvc.yaml                     # DVC pipeline definition
-├── main.py                      # Pipeline orchestrator CLI
-├── params.yaml                  # All hyperparameters
+│   └── gradio_app.py             # Gradio web application
+├── app.py                        # HuggingFace Spaces entry point
+├── src/dental_opg/
+│   ├── components/
+│   │   ├── data_ingestion.py
+│   │   ├── data_validation.py
+│   │   ├── data_transformation.py
+│   │   ├── model_trainer.py
+│   │   └── model_evaluation.py
+│   └── pipeline/
+│       └── prediction_pipeline.py
+├── config/config.yaml            # Artifact paths
+├── params.yaml                   # All YOLOv8 hyperparameters
+├── dvc.yaml                      # DVC pipeline (5 stages)
+├── main.py                       # Pipeline orchestrator CLI
 ├── requirements.txt
-├── setup.py
-├── Dockerfile
-└── README.md
+└── tests/
 ```
 
 ---
 
-## ⚡ Quick Start
+## Pipeline Stages
 
-### Prerequisites
-- Python 3.11+
-- Git
-- CUDA (recommended) or CPU
+```text
+Stage 1  Data Ingestion        Download OPG dataset from Google Drive
+Stage 2  Data Validation       Verify image and annotation integrity
+Stage 3  Data Transformation   Convert to YOLO format, split 75/15/10, augment
+Stage 4  Model Training        YOLOv8s training with MLflow experiment tracking
+Stage 5  Model Evaluation      mAP50, Precision, Recall, F1 with visual report
+```
 
-### 1. Clone and Install
+---
 
-```bash
-git clone https://github.com/Sentoz/Dental-OPG-XRAY-Analysis-MLOPS.git
+## Running Locally (Anaconda Prompt)
+
+### 1. Clone and set up
+
+```bat
+git clone https://github.com/sentongo-web/Dental-OPG-XRAY-Analysis-MLOPS.git
 cd Dental-OPG-XRAY-Analysis-MLOPS
-
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-pip install -r requirements.txt
 pip install -e .
+pip install -r requirements.txt
 ```
 
-### 2. Initialize DVC
+### 2. Run the full training pipeline
 
-```bash
-dvc init
-dvc remote add -d gdrive gdrive://1mm0L2jRPKqCpyxXRsSJKVoj63-SXncv1
+```bat
+set PYTHONPATH=src && python main.py
 ```
 
-### 3. Run the Full Pipeline
+### 3. Launch the web app
 
-```bash
-# Run all 5 stages
-python main.py
-
-# Or run stages individually
-python main.py --stage 1    # Download data
-python main.py --stage 2    # Validate data
-python main.py --stage 3    # Transform to YOLO format
-python main.py --stage 4    # Train YOLOv8
-python main.py --stage 5    # Evaluate model
+```bat
+set PYTHONPATH=src && python app/gradio_app.py
 ```
 
-### 4. View Experiment Tracking
+Open [http://localhost:7860](http://localhost:7860) in your browser.
 
-```bash
-mlflow ui
-# Open http://localhost:5000
-```
+---
 
-### 5. Launch Web App
+## Deploy to HuggingFace Spaces
 
-```bash
-python app/gradio_app.py
-# Open http://localhost:7860
+Get a Write token from [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens), then run:
+
+```bat
+python scripts/deploy_to_huggingface.py --token YOUR_HF_TOKEN --author sentongo-web
 ```
 
 ---
 
-## 🔄 Pipeline Stages
+## Running Tests
 
-### Stage 1: Data Ingestion
-- Downloads dataset from Google Drive using `gdown`
-- Extracts ZIP archive
-- Logs dataset structure and file counts
-
-```bash
-python -m dental_opg.pipeline.stage_01_data_ingestion
-```
-
-### Stage 2: Data Validation
-- Auto-detects annotation format (YOLO/COCO/VOC)
-- Validates image/label counts
-- Generates validation report JSON
-
-```bash
-python -m dental_opg.pipeline.stage_02_data_validation
-```
-
-### Stage 3: Data Transformation
-- Converts any format → YOLO format
-- Creates 75/15/10 train/val/test split
-- Applies medical-safe augmentations:
-  - CLAHE contrast enhancement
-  - Brightness variation (±20%)
-  - Slight rotation (±5°)
-  - Gaussian blur
-- Writes `data.yaml` for YOLOv8
-
-```bash
-python -m dental_opg.pipeline.stage_03_data_transformation
-```
-
-### Stage 4: Model Training
-- Loads YOLOv8 (nano/small/medium/large/xlarge)
-- Full hyperparameter control via `params.yaml`
-- MLflow logging: params, metrics, model artifacts, plots
-- Saves best model to `models/best/best.pt`
-
-```bash
-python -m dental_opg.pipeline.stage_04_model_training
-```
-
-### Stage 5: Model Evaluation
-- Evaluates on test split
-- Computes mAP@0.5, mAP@0.5:0.95, Precision, Recall, F1
-- Generates evaluation report (PNG)
-- Quality check against thresholds
-- MLflow logging of all evaluation metrics
-
-```bash
-python -m dental_opg.pipeline.stage_05_model_evaluation
+```bat
+set PYTHONPATH=src && pytest tests/unit/ -v
 ```
 
 ---
 
-## 📊 Model Performance
+## Dataset
 
-After training (metrics updated automatically):
-
-| Metric | Score |
-|--------|-------|
-| mAP@0.5 | TBD after training |
-| mAP@0.5:0.95 | TBD after training |
-| Precision | TBD after training |
-| Recall | TBD after training |
-| F1 Score | TBD after training |
-
-### Why YOLOv8?
-- **Speed:** Real-time inference (30+ FPS on GPU)
-- **Accuracy:** State-of-the-art detection on medical images
-- **Flexible:** nano → xlarge variants for different hardware
-- **Production-ready:** ONNX, TorchScript, TensorRT export
+- **Source:** Dental OPG X-ray dataset via Google Drive
+- **Detection subset:** ~260 panoramic OPG images with YOLO bounding box annotations
+- **Classes:** 6 dental conditions (indices 0–5)
+- **Split:** 75% train / 15% val / 10% test
+- **Augmentation:** 2× per training image (CLAHE, brightness variation, slight rotation)
 
 ---
 
-## ⚙️ Configuration
+## OPG Image Validation
 
-### Model Hyperparameters (`params.yaml`)
+Before running detection, the system checks that the uploaded image is a valid dental X-ray:
 
-```yaml
-training:
-  model: yolov8n.pt      # Change to yolov8s/m/l/x for better accuracy
-  epochs: 100
-  batch: 16
-  imgsz: 640
-  lr0: 0.01
-  optimizer: AdamW
-  # Medical imaging specific - NO flips, NO mosaic
-  fliplr: 0.0
-  flipud: 0.0
-  mosaic: 0.0
-  hsv_h: 0.0             # X-rays are grayscale
-  hsv_s: 0.0
-  hsv_v: 0.4             # Brightness augmentation OK
-```
+- **Aspect ratio:** OPG images are panoramic — significantly wider than tall
+- **Grayscale check:** X-rays have near-identical RGB channels; colourful images are rejected
+- **Brightness range:** Too-dark or too-bright images are flagged
+- **Minimum size:** Very small or thumbnail images are rejected
 
-### Switching Model Size
-
-```yaml
-# For better accuracy (requires more GPU memory):
-model: yolov8s.pt   # Small (11.1M params)
-model: yolov8m.pt   # Medium (25.9M params)
-model: yolov8l.pt   # Large (43.7M params)
-model: yolov8x.pt   # XLarge (68.2M params)
-```
+Non-dental images receive a clear rejection message instead of a meaningless detection result.
 
 ---
 
-## 🚀 MLOps Features
+## Medical Disclaimer
 
-| Feature | Tool | Details |
-|---------|------|---------|
-| Data Versioning | DVC | Track raw data, processed splits, model artifacts |
-| Experiment Tracking | MLflow | Parameters, metrics, artifacts, model registry |
-| Pipeline Orchestration | DVC + Python | Stage dependencies, caching, reproducibility |
-| CI/CD | GitHub Actions | Lint, test, Docker build, HF deployment |
-| Containerization | Docker | Multi-stage build, production-ready |
-| Configuration | YAML + Python | Config + Params separation, type-safe entities |
-| Testing | pytest | Unit + integration tests, coverage reporting |
-| Code Quality | black + isort + flake8 | Pre-commit hooks |
-
-### DVC Commands
-
-```bash
-# Run full pipeline (DVC-managed)
-dvc repro
-
-# Run specific stage
-dvc repro model_training
-
-# Check what would run (dry run)
-dvc repro --dry
-
-# Push data/model to remote
-dvc push
-
-# Pull latest data/model
-dvc pull
-
-# Compare parameters across runs
-dvc params diff
-
-# Compare metrics across runs
-dvc metrics diff
-```
-
-### MLflow Commands
-
-```bash
-# Start UI
-mlflow ui
-
-# List experiments
-mlflow experiments list
-
-# Get best run
-mlflow runs list --experiment-name "Dental-OPG-Cavity-Detection" --order-by "metrics.mAP50 DESC"
-```
+This system is designed to **assist** qualified dental professionals. It is not a substitute for clinical examination, professional diagnosis, or treatment planning. All findings must be confirmed by a licensed dentist before any clinical decision is made.
 
 ---
 
-## 🤗 HuggingFace Deployment
-
-### Quick Deploy
-
-```bash
-# After training
-python scripts/deploy_to_huggingface.py \
-    --token YOUR_HF_TOKEN \
-    --author Sentoz \
-    --space-name dental-opg-cavity-detection
-```
-
-### CI/CD Deployment
-Deployment triggers automatically on push to `main` when model changes are detected.
-
-Required GitHub Secrets:
-- `HF_TOKEN`: HuggingFace API token (Settings → Access Tokens)
-
-### Space URL
-```
-https://huggingface.co/spaces/Sentoz/dental-opg-cavity-detection
-```
-
----
-
-## 📡 API Reference
-
-### Python API
-
-```python
-from dental_opg.pipeline.prediction_pipeline import PredictionPipeline
-import cv2
-
-# Initialize
-pipeline = PredictionPipeline(
-    model_path="models/best/best.pt",
-    conf_threshold=0.25,
-    iou_threshold=0.45,
-)
-
-# Predict
-image = cv2.imread("opg_xray.jpg")
-result = pipeline.predict(image)
-
-print(f"Cavities: {result['cavity_count']}")
-print(f"Severity: {result['severity']}")
-for det in result['detections']:
-    print(f"  {det['class_name']}: {det['confidence']:.2%} at {det['bbox']}")
-
-# Show annotated image
-cv2.imshow("Result", result['visualization'])
-```
-
-### CLI
-
-```bash
-python -m dental_opg.pipeline.prediction_pipeline \
-    --image path/to/opg.jpg \
-    --model models/best/best.pt \
-    --conf 0.25 \
-    --output annotated.jpg
-```
-
----
-
-## 🐳 Docker
-
-```bash
-# Build
-docker build -t dental-opg-cavity-detection .
-
-# Run web app
-docker run -p 7860:7860 dental-opg-cavity-detection
-
-# Run training
-docker run -v $(pwd)/data:/app/data dental-opg-cavity-detection python main.py
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run unit tests
-pytest tests/unit/ -v
-
-# Run with coverage
-pytest tests/unit/ --cov=src/dental_opg --cov-report=html
-
-# Run integration tests (requires data + model)
-pytest tests/integration/ -v -m integration
-```
-
----
-
-## ⚕️ Medical Disclaimer
-
-This tool is designed to **assist** dental professionals and is **NOT** a substitute for:
-- Professional clinical examination
-- Radiologist review
-- Dentist diagnosis and treatment planning
-
-Always consult a qualified dental professional for proper evaluation and treatment.
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
-## 👤 Author
+## Author
 
 **Paul Sentongo**
-
----
-
-*Built with ❤️ for better dental healthcare through AI*
+[GitHub](https://github.com/sentongo-web) · [Dental-OPG-XRAY-Analysis-MLOPS](https://github.com/sentongo-web/Dental-OPG-XRAY-Analysis-MLOPS)
